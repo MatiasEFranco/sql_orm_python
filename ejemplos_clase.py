@@ -91,7 +91,7 @@ def insert_persona(name, age, country):
     # Buscar la nacionalidada nueva nacionalidad
     query = session.query(Nacionalidad).filter(Nacionalidad.country == country)
     nationality = query.first()
-
+    
     if nationality is None:
         # Podrá ver en este ejemplo que sucederá este error con la persona
         # de nacionalidad Inglaterra ya que no está definida en el archivo
@@ -107,6 +107,7 @@ def insert_persona(name, age, country):
     session.add(person)
     session.commit()
     print(person)
+    
 
 
 def fill():
@@ -202,11 +203,11 @@ if __name__ == '__main__':
 
     count_persona('Argentina')
 
-    update_persona_nationality('Max', 'Holanda')
-    show(2)
+    #update_persona_nationality('Max', 'Holanda')
+    #show(2)
 
-    insert_persona('Max', 40, 'Estados Unidos')
-    insert_persona('SQL', 13, 'Inglaterra')
-    insert_persona('SQLite', 20, 'Estados Unidos')
+    #insert_persona('Max', 40, 'Estados Unidos')
+    #insert_persona('SQL', 13, 'Inglaterra')
+    #insert_persona('SQLite', 20, 'Estados Unidos')
     
-    show()
+    #show()

@@ -16,19 +16,21 @@ __email__ = "alumnos@inove.com.ar"
 __version__ = "1.1"
 
 import sqlite3
-
+import csv
+import json
+import requests
 import sqlalchemy
 from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.ext.declarative import declarative_base #aqui traemos la plantilla base
+from sqlalchemy.orm import sessionmaker, relationship #aqui podemos vincular las diferentes clases
 
 # Crear el motor (engine) de la base de datos
-engine = sqlalchemy.create_engine("sqlite:///secundaria.db")
+engine = sqlalchemy.create_engine("sqlite:///secundaria.db") #crreamos la DB secundaria
 base = declarative_base()
 
 
 class Tutor(base):
-    __tablename__ = "tutor"
+    __tablename__ = "tutor" #aqui creamos la tabla "tutor"
     id = Column(Integer, primary_key=True)
     name = Column(String)
     
@@ -36,8 +38,8 @@ class Tutor(base):
         return f"Tutor: {self.name}"
 
 
-class Estudiante(base):
-    __tablename__ = "estudiante"
+class Estudiante(base): 
+    __tablename__ = "estudiante"    #aqui creamos la tabla "estudiante"
     id = Column(Integer, primary_key=True)
     name = Column(String)
     age = Column(Integer)
@@ -53,15 +55,15 @@ class Estudiante(base):
 def create_schema():
     # Borrar todos las tablas existentes en la base de datos
     # Esta linea puede comentarse sino se eliminar los datos
-    base.metadata.drop_all(engine)
+    base.metadata.drop_all(engine) #aqui borramos toda la informacion de la base de datos
 
     # Crear las tablas
-    base.metadata.create_all(engine)
+    base.metadata.create_all(engine) #aqui vovlemos a crear la base de datos
 
 
 def fill():
     print('Completemos esta tablita!')
-    # Llenar la tabla de la secundaria con al munos 2 tutores
+    # Llenar la tabla de la secundaria con al menos 2 tutores
     # Cada tutor tiene los campos:
     # id --> este campo es auto incremental por lo que no deberá completarlo
     # name --> El nombre del tutor (puede ser solo nombre sin apellido)
@@ -76,14 +78,55 @@ def fill():
 
     # No olvidarse que antes de poder crear un estudiante debe haberse
     # primero creado el tutor.
+    
+    # Crear la session
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    tutor_1 =  Tutor(name= "Carlos F" )
+    tutor_2 =  Tutor(name= "Flor A" )
+
+    session.add(tutor_1)
+    session.add(tutor_2)
+    session.commit()
+    print(tutor_1)
+    print(tutor_2)
+    
+    # Insertar el archivo CSV de estudiantes
+    # Insertar todas las filas juntas
+    with open('estudiantes.csv') as est:
+        data = list(csv.DictReader(est))
+
+        for row in data:
+                Session = sessionmaker(bind=engine)
+                session = Session()
+
+                # Buscamos el Tutor
+                query = session.query(Tutor).filter(Tutor.id == row['tutor'])
+                tutor = query.first()
+
+                estudiante = Estudiante(name = row['name'], age = int(row['age']), grade = row['grade'])
+                estudiante.tutor = tutor #colocamos el tutor que encotramos en la busqueda
+                session.add(estudiante)
+                session.commit()
+                #print(estudiante)
 
 
 def fetch():
     print('Comprovemos su contenido, ¿qué hay en la tabla?')
     # Crear una query para imprimir en pantalla
-    # todos los objetos creaods de la tabla estudiante.
+    # todos los objetos creados de la tabla estudiante.
     # Imprimir en pantalla cada objeto que traiga la query
     # Realizar un bucle para imprimir de una fila a la vez
+    # Crear la session
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    # Buscar todos los alumnos
+    query = session.query(Estudiante).order_by(Estudiante.age.desc())
+
+    for estudiante in query:
+        print(estudiante)
 
 
 def search_by_tutor(tutor):
@@ -95,6 +138,14 @@ def search_by_tutor(tutor):
     # Para poder realizar esta query debe usar join, ya que
     # deberá crear la query para la tabla estudiante pero
     # buscar por la propiedad de tutor.name
+    # Crear la session
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    resultado = session.query(Estudiante).join(Estudiante.tutor).filter(Tutor.name == tutor)
+
+    for estudiante in resultado:
+        print(estudiante)
 
 
 def modify(id, name):
@@ -109,7 +160,23 @@ def modify(id, name):
 
     # TIP: En clase se hizo lo mismo para las nacionalidades con
     # en la función update_persona_nationality
+    # Crear la session
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
+    # Buscar el tutor que se desea actualizar
+    tutor_busquda = session.query(Tutor).filter(Tutor.name == name)
+    tutor_id = tutor_busquda.first()
+
+    # Buscar al estudiante que se desea actualizar
+    Estudiante_busqueda = session.query(Estudiante).filter(Estudiante.id == id)
+    estudiante = Estudiante_busqueda.first()
+
+    estudiante.tutor = tutor_id #actualizamos el tutor
+
+    session.add(estudiante)
+    session.commit()
+    print(estudiante)
 
 def count_grade(grade):
     print('Estudiante por grado')
@@ -119,20 +186,25 @@ def count_grade(grade):
 
     # TIP: En clase se hizo lo mismo para las nacionalidades con
     # en la función count_persona
+    # Crear la session
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
+    result = session.query(Estudiante).filter(Estudiante.grade == grade).count()
+    print('Estudiantes cursando el grado', grade, 'encontrados:', result)
 
 if __name__ == '__main__':
     print("Bienvenidos a otra clase de Inove con Python")
     create_schema()   # create and reset database (DB)
-    # fill()
-    # fetch()
+    fill()
+    fetch()
 
-    tutor = 'nombre_tutor'
-    # search_by_tutor(tutor)
+    tutor = 'Carlos F'
+    search_by_tutor(tutor)
 
-    nuevo_tutor = 'nombre_tutor'
+    nuevo_tutor = 'Flor A'
     id = 2
-    # modify(id, nuevo_tutor)
+    modify(id, nuevo_tutor)
 
     grade = 2
-    # count_grade(grade)
+    count_grade(grade)
